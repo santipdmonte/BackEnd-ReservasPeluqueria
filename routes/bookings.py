@@ -232,3 +232,41 @@ async def obtener_turnos_by_user(user_id: UUID, db=Depends(get_db)):
 
 
 
+@router.get("/agendados/{fecha}")
+async def horarios_disponibles_by_date(fecha: date, db=Depends(get_db)):
+    
+    try:
+        if fecha < date.today():
+            raise HTTPException( status_code=400, detail="No se pueden consultar fechas pasadas")
+
+        turnos = await db.fetch(
+        """
+            SELECT 
+                usuario_id, 
+                u.telefono,
+                u.email,
+                hora,
+                u.nombre as nombre_usuario,
+                s.nombre as servicio,
+                e.nombre as nombre_empleado
+            FROM turnos
+            LEFT JOIN usuarios u ON turnos.usuario_id = u.id 
+            LEFT JOIN servicios s ON turnos.servicio_id = s.id
+            LEFT JOIN empleados e ON turnos.empleado_id = e.id
+            WHERE  
+                fecha = $1
+                AND estado = 'confirmado';
+        """
+        , fecha)
+
+        if not turnos:
+            raise HTTPException(status_code=404, detail=f"No se encontraron turnos disponibles para el {fecha}")
+        
+        return [dict(turno) for turno in turnos]
+    
+    except HTTPException as http_error:
+        raise http_error
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+
