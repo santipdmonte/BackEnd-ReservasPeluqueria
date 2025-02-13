@@ -233,7 +233,7 @@ async def obtener_turnos_by_user(user_id: UUID, db=Depends(get_db)):
 
 
 @router.get("/agendados/{fecha}")
-async def horarios_disponibles_by_date(fecha: date, db=Depends(get_db)):
+async def turnos_agendados_by_date(fecha: date, db=Depends(get_db)):
     
     try:
         if fecha < date.today():
