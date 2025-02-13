@@ -255,7 +255,8 @@ async def turnos_agendados_by_date(fecha: date, db=Depends(get_db)):
             LEFT JOIN empleados e ON turnos.empleado_id = e.id
             WHERE  
                 fecha = $1
-                AND estado = 'confirmado';
+                AND estado = 'confirmado'
+            ORDER BY hora;
         """
         , fecha)
 
