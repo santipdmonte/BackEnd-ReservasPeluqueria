@@ -1,0 +1,50 @@
+name: Deploy Lambda Function
+
+on:
+
+  push:
+
+    branches: [ main ]
+
+jobs:
+
+  deploy:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies into package folder
+        run: |
+          python -m pip install --upgrade pip
+          mkdir package
+          pip install -r requirements.txt -t package
+
+      - name: Copy source code to package folder
+        run: |
+          cp -r *.py package/
+          # Si tienes carpetas con más código, inclúyelas también, por ejemplo:
+          cp -r routes/ package/routes/
+
+      - name: Create Zip file for Lambda function
+        run: |
+          cd package
+          zip -r ../code.zip .
+          
+      - name: Deploy to AWS Lambda
+        uses: imehedi/actions-awscli-v2@latest
+        with:
+          args: "lambda update-function-code \
+            --function-name arn:aws:lambda:us-east-2:816069150902:function:BackEnd-Reservas \
+            --zip-file fileb://code.zip"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: "us-east-2"

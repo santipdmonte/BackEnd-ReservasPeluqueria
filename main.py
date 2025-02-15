@@ -1,9 +1,12 @@
 from fastapi import FastAPI
 from routes import bookings, users
+from mangum import Mangum
 
 app = FastAPI(title="API de Peluquería", version="1.0")
 app.include_router(bookings.router)
 app.include_router(users.router)
+
+handler = Mangum(app)
 
 if __name__ == "__main__":
     import uvicorn
