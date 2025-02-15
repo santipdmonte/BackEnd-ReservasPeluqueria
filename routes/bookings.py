@@ -261,7 +261,7 @@ async def turnos_agendados_by_date(fecha: date, db=Depends(get_db)):
         , fecha)
 
         if not turnos:
-            raise HTTPException(status_code=404, detail=f"No se encontraron turnos disponibles para el {fecha}")
+            raise HTTPException(status_code=404, detail=f"No se encontraron turnos agendados para el {fecha}")
         
         return [dict(turno) for turno in turnos]
     
