@@ -141,7 +141,7 @@ async def cancelar_turno(turno_id: UUID, db=Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
 @router.get("/disponibles", response_model=list[HorarioDisponibleResponse])
-async def horarios_disponibles_by_date_employee(fecha: date, empleado_id: Optional[UUID], db=Depends(get_db)):
+async def horarios_disponibles_by_date_employee(fecha: date, empleado_id: Optional[UUID]  = None, db=Depends(get_db)):
     
     try:
         if fecha < date.today():
@@ -157,9 +157,8 @@ async def horarios_disponibles_by_date_employee(fecha: date, empleado_id: Option
                     empleado_id = $1
                     disponible = TRUE 
                     AND fecha = $2;
-            """
-            , empleado_id,fecha)
-            
+            """, empleado_id, fecha)
+
         else:
             turnos = await db.fetch(
             """
@@ -169,8 +168,7 @@ async def horarios_disponibles_by_date_employee(fecha: date, empleado_id: Option
                 WHERE  
                     disponible = TRUE 
                     AND fecha = $1;
-            """
-            , fecha)
+            """, fecha)
 
         if not turnos:
             raise HTTPException(status_code=404, detail=f"No se encontraron turnos disponibles para el {fecha}")
