@@ -146,8 +146,11 @@ async def horarios_disponibles_by_date(fecha: date, db=Depends(get_db)):
         if fecha < date.today():
             raise HTTPException( status_code=400, detail="No se pueden consultar fechas pasadas")
 
-        turnos = await db.fetch("""
-            SELECT * FROM horarios_disponibles 
+        turnos = await db.fetch(
+        """
+            SELECT * 
+            FROM horarios_disponibles
+            INNER JOIN empleados ON horarios_disponibles.empleado_id = empleados.id
             WHERE  
                 disponible = TRUE 
                 AND fecha = $1;
