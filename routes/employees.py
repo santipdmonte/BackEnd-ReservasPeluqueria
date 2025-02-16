@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from database import get_db
 
-from schemas import EmpleadoResponse, EmpleadoBase
+from schemas import EmpleadoResponse, EmpleadoBase, EmpleadoEdit
 from uuid import UUID
 
 from datetime import date
@@ -52,12 +52,20 @@ async def crear_empleados (empleado: EmpleadoBase ,db=Depends(get_db)):
     
 
 @router.put("/", response_model=EmpleadoResponse)
-async def actualizar_datos_empleado(empleado: EmpleadoResponse, db=Depends(get_db)):
+async def actualizar_datos_empleado(empleado: EmpleadoEdit, db=Depends(get_db)):
     
     try:
+
+        empleado_anterior = await db.fetchrow(" SELECT * FROM empleados where id = $1;", empleado.id)
         
-        if not await db.fetchrow(" SELECT * FROM empleados where id = $1;", empleado.id):
+        if not empleado_anterior:
             raise HTTPException(status_code=404, detail=f"No se encontraro al empleado con id {empleado.id}")
+        
+        if not empleado.nombre:
+            empleado.nombre = empleado_anterior['nombre']
+
+        if not empleado.especialidad:
+            empleado.especialidad = empleado_anterior['especialidad']
 
         empleado_actualizado = await db.fetchrow(
         """

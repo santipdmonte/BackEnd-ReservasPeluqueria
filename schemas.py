@@ -27,6 +27,11 @@ class EmpleadoBase(BaseModel):
 class EmpleadoCreate(EmpleadoBase):
     pass
 
+class EmpleadoEdit(BaseModel):
+    nombre: Optional[str] = None
+    especialidad: Optional[str] = None
+    id: UUID
+
 class EmpleadoResponse(EmpleadoBase):
     id: UUID
 
