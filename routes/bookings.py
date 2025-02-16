@@ -3,6 +3,7 @@ from database import get_db
 
 from schemas import TurnoBase, TurnoResponse, HorarioDisponible, HorarioDisponibleResponse
 from uuid import UUID
+from typing import Optional
 
 from datetime import date
 
@@ -139,23 +140,37 @@ async def cancelar_turno(turno_id: UUID, db=Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
 
-@router.get("/disponibles/{fecha}", response_model=list[HorarioDisponibleResponse])
-async def horarios_disponibles_by_date(fecha: date, db=Depends(get_db)):
+@router.get("/disponibles", response_model=list[HorarioDisponibleResponse])
+async def horarios_disponibles_by_date_employee(fecha: date, empleado_id: Optional[UUID], db=Depends(get_db)):
     
     try:
         if fecha < date.today():
             raise HTTPException( status_code=400, detail="No se pueden consultar fechas pasadas")
 
-        turnos = await db.fetch(
-        """
-            SELECT * 
-            FROM horarios_disponibles
-            INNER JOIN empleados ON horarios_disponibles.empleado_id = empleados.id
-            WHERE  
-                disponible = TRUE 
-                AND fecha = $1;
-        """
-        , fecha)
+        if empleado_id:
+            turnos = await db.fetch(
+            """
+                SELECT * 
+                FROM horarios_disponibles
+                INNER JOIN empleados ON horarios_disponibles.empleado_id = empleados.id
+                WHERE  
+                    empleado_id = $1
+                    disponible = TRUE 
+                    AND fecha = $2;
+            """
+            , empleado_id,fecha)
+            
+        else:
+            turnos = await db.fetch(
+            """
+                SELECT * 
+                FROM horarios_disponibles
+                INNER JOIN empleados ON horarios_disponibles.empleado_id = empleados.id
+                WHERE  
+                    disponible = TRUE 
+                    AND fecha = $1;
+            """
+            , fecha)
 
         if not turnos:
             raise HTTPException(status_code=404, detail=f"No se encontraron turnos disponibles para el {fecha}")
