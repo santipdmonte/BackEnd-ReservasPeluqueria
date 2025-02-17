@@ -59,7 +59,10 @@ async def actualizar_usuario(usuario_new: UsuarioUpdate, db=Depends(get_db)):
         if not usuario_new.nombre and not usuario_new.email:
             raise HTTPException(status_code=400, detail="Debe enviar al menos un campo para actualizar")
 
-        if usuario_new.email and (usuario_new.email != usuario['email']):
+        email_actual = usuario.get('email')
+
+        # Validar si el email es diferente y no está vacío
+        if usuario_new.email and (usuario_new.email != email_actual or email_actual is None):
             existe_email = await db.fetchval("""
             SELECT EXISTS (
                 SELECT 1 FROM usuarios 
