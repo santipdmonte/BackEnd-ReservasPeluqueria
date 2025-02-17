@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from database import get_db
-from schemas import UsuarioResponse, UsuarioBase
+from schemas import UsuarioResponse, UsuarioBase, UsuarioUpdate
 from uuid import UUID
 from typing import Optional
 
@@ -48,30 +48,30 @@ async def crear_usuario(usuario: UsuarioBase, db=Depends(get_db)):
 
 
 @router.put("/", response_model=UsuarioResponse)
-async def actualizar_usuario(usuario_id: UUID, nombre: Optional[str] = None, email: Optional[str] = None, db=Depends(get_db)):
+async def actualizar_usuario(usuario_new: UsuarioUpdate, db=Depends(get_db)):
     
     try: 
-        usuario = await db.fetchrow("SELECT * FROM usuarios WHERE id = $1;", usuario_id)
+        usuario = await db.fetchrow("SELECT * FROM usuarios WHERE id = $1;", usuario_new.id)
 
         if not usuario:
-            raise HTTPException(status_code=400, detail=f"No existe usuario con el id ({usuario_id})")
+            raise HTTPException(status_code=400, detail=f"No existe usuario con el id ({usuario_new.id})")
         
-        if not nombre and not email:
+        if not usuario_new.nombre and not usuario_new.email:
             raise HTTPException(status_code=400, detail="Debe enviar al menos un campo para actualizar")
 
-        if email and (email != usuario['email']):
+        if usuario_new.email and (usuario_new.email != usuario['email']):
             existe_email = await db.fetchval("""
             SELECT EXISTS (
                 SELECT 1 FROM usuarios 
                 WHERE email = $1
             );
-            """, email)
+            """, usuario_new.email)
 
             if existe_email:
                 raise HTTPException(status_code=400, detail="Ya existe un usuario con ese email")
             
-        if not nombre:
-            nombre = usuario['nombre']
+        if not usuario_new.nombre:
+            usuario_new.nombre = usuario['nombre']
 
         # Actualizar el usuario
         result  = await db.fetchrow(
@@ -83,7 +83,7 @@ async def actualizar_usuario(usuario_id: UUID, nombre: Optional[str] = None, ema
             WHERE 
                 id = $3
             RETURNING *;
-        """, nombre, email, usuario_id)
+        """, usuario_new.nombre, usuario_new.email, usuario_new.usuario_id)
             
         return dict(result) 
 

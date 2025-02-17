@@ -19,6 +19,11 @@ class UsuarioResponse(UsuarioBase):
     class Config:
         from_attributes = True
 
+class UsuarioUpdate(BaseModel):
+    nombre: Optional[str] = None
+    email: Optional[EmailStr] = None
+    id: UUID
+
 # ==== Empleado ====
 class EmpleadoBase(BaseModel):
     nombre: str
