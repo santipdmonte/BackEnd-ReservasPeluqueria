@@ -97,6 +97,9 @@ async def horarios_disponibles_by_date_employee(fecha: date, empleado_id: Option
                     AND fecha = $2;
             """, empleado_id, fecha)
 
+            if not turnos:
+                raise HTTPException(status_code=404, detail=f"No se encontraron turnos disponibles para el {fecha} con este empleado")
+
         else:
             turnos = await db.fetch(
             """
@@ -108,8 +111,8 @@ async def horarios_disponibles_by_date_employee(fecha: date, empleado_id: Option
                     AND fecha = $1;
             """, fecha)
 
-        if not turnos:
-            raise HTTPException(status_code=404, detail=f"No se encontraron turnos disponibles para el {fecha}")
+            if not turnos:
+                raise HTTPException(status_code=404, detail=f"No se encontraron turnos disponibles para el {fecha}")
         
         return [dict(turno) for turno in turnos]
     
