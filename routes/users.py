@@ -83,7 +83,7 @@ async def actualizar_usuario(usuario_new: UsuarioUpdate, db=Depends(get_db)):
             WHERE 
                 id = $3
             RETURNING *;
-        """, usuario_new.nombre, usuario_new.email, usuario_new.usuario_id)
+        """, usuario_new.nombre, usuario_new.email, usuario_new.id)
             
         return dict(result) 
 
