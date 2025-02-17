@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from database import get_db
 from schemas import UsuarioResponse, UsuarioBase
 from uuid import UUID
+from typing import Optional
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
@@ -44,7 +45,53 @@ async def crear_usuario(usuario: UsuarioBase, db=Depends(get_db)):
         raise HTTPException(status_code=500, detail="Error al crear el usuario")
         
     return dict(result)
+
+
+@router.put("/", response_model=UsuarioResponse)
+async def actualizar_usuario(usuario_id: UUID, nombre: Optional[str] = None, email: Optional[str] = None, db=Depends(get_db)):
     
+    try: 
+        usuario = await db.fetchrow("SELECT * FROM usuarios WHERE id = $1;", usuario_id)
+
+        if not usuario:
+            raise HTTPException(status_code=400, detail=f"No existe usuario con el id ({usuario_id})")
+        
+        if not nombre and not email:
+            raise HTTPException(status_code=400, detail="Debe enviar al menos un campo para actualizar")
+
+        if email and (email != usuario['email']):
+            existe_email = await db.fetchval("""
+            SELECT EXISTS (
+                SELECT 1 FROM usuarios 
+                WHERE email = $1
+            );
+            """, email)
+
+            if existe_email:
+                raise HTTPException(status_code=400, detail="Ya existe un usuario con ese email")
+            
+        if not nombre:
+            nombre = usuario['nombre']
+
+        # Actualizar el usuario
+        result  = await db.fetchrow(
+        """
+            UPDATE usuarios 
+            SET 
+                nombre = $1, 
+                email = $2
+            WHERE 
+                id = $3
+            RETURNING *;
+        """, nombre, email, usuario_id)
+            
+        return dict(result) 
+
+    except HTTPException as http_err:
+        raise http_err
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/telefono/{telefono}", response_model=UsuarioResponse)
