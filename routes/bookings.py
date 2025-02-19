@@ -88,9 +88,15 @@ async def horarios_disponibles_by_date_employee(fecha: date, empleado_id: Option
         if empleado_id:
             turnos = await db.fetch(
             """
-                SELECT * 
+                SELECT 
+                    fecha,
+                    hora,
+                    empleado_id,
+                    e.nombre                    as nombre_empleado,
+                    horarios_disponibles.id     as id_reserva,
+                    disponible
                 FROM horarios_disponibles
-                INNER JOIN empleados ON horarios_disponibles.empleado_id = empleados.id
+                INNER JOIN empleados e ON horarios_disponibles.empleado_id = empleados.id
                 WHERE  
                     empleado_id = $1
                     AND disponible = TRUE 
@@ -103,7 +109,13 @@ async def horarios_disponibles_by_date_employee(fecha: date, empleado_id: Option
         else:
             turnos = await db.fetch(
             """
-                SELECT * 
+                SELECT 
+                    fecha,
+                    hora,
+                    empleado_id,
+                    e.nombre                    as nombre_empleado,
+                    horarios_disponibles.id     as id_reserva,
+                    disponible
                 FROM horarios_disponibles
                 INNER JOIN empleados ON horarios_disponibles.empleado_id = empleados.id
                 WHERE  
