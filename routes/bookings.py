@@ -78,7 +78,7 @@ async def crear_turno(turno: TurnoBase, db=Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
-@router.get("/disponibles", response_model=list[HorarioDisponibleResponse])
+@router.get("/disponibles")
 async def horarios_disponibles_by_date_employee(fecha: date, empleado_id: Optional[UUID]  = None, db=Depends(get_db)):
     
     try:
@@ -96,7 +96,7 @@ async def horarios_disponibles_by_date_employee(fecha: date, empleado_id: Option
                     horarios_disponibles.id     as id_reserva,
                     disponible
                 FROM horarios_disponibles
-                INNER JOIN empleados e ON horarios_disponibles.empleado_id = empleados.id
+                INNER JOIN empleados e ON horarios_disponibles.empleado_id = e.id
                 WHERE  
                     empleado_id = $1
                     AND disponible = TRUE 
@@ -117,7 +117,7 @@ async def horarios_disponibles_by_date_employee(fecha: date, empleado_id: Option
                     horarios_disponibles.id     as id_reserva,
                     disponible
                 FROM horarios_disponibles
-                INNER JOIN empleados ON horarios_disponibles.empleado_id = empleados.id
+                INNER JOIN empleados e ON horarios_disponibles.empleado_id = e.id
                 WHERE  
                     disponible = TRUE 
                     AND fecha = $1;
