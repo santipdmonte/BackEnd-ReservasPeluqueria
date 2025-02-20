@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from database import get_db
 
-from schemas import EmpleadoResponse, EmpleadoBase, EmpleadoEdit
+from schemas import EmpleadoResponse, EmpleadoBase
 from uuid import UUID
 
 from datetime import date
@@ -51,15 +51,15 @@ async def crear_empleados (empleado: EmpleadoBase ,db=Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
     
 
-@router.put("/", response_model=EmpleadoResponse)
-async def actualizar_datos_empleado(empleado: EmpleadoEdit, db=Depends(get_db)):
+@router.put("/{empleado_id}", response_model=EmpleadoResponse)
+async def actualizar_datos_empleado(empleado_id: UUID, empleado: EmpleadoBase, db=Depends(get_db)):
     
     try:
 
-        empleado_anterior = await db.fetchrow(" SELECT * FROM empleados where id = $1;", empleado.id)
+        empleado_anterior = await db.fetchrow(" SELECT * FROM empleados where id = $1;", empleado_id)
         
         if not empleado_anterior:
-            raise HTTPException(status_code=404, detail=f"No se encontraro al empleado con id {empleado.id}")
+            raise HTTPException(status_code=404, detail=f"No se encontraro al empleado con id {empleado_id}")
         
         if not empleado.nombre:
             empleado.nombre = empleado_anterior['nombre']
@@ -75,10 +75,10 @@ async def actualizar_datos_empleado(empleado: EmpleadoEdit, db=Depends(get_db)):
                 especialidad = $2
             WHERE id = $3 
             RETURNING *;
-        """, empleado.nombre, empleado.especialidad, empleado.id)
+        """, empleado.nombre, empleado.especialidad, empleado_id)
 
         if not empleado_actualizado:
-            raise HTTPException(status_code=404, detail=f"Error al actualizar el empleado con id {empleado.id}")
+            raise HTTPException(status_code=404, detail=f"Error al actualizar el empleado con id {empleado_id}")
         
         return dict(empleado_actualizado)
     
@@ -89,7 +89,7 @@ async def actualizar_datos_empleado(empleado: EmpleadoEdit, db=Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
     
 
-@router.delete("/")
+@router.delete("/{empleado_id}")
 async def eliminar_empleado(empleado_id: UUID, db=Depends(get_db)):
     
     try:

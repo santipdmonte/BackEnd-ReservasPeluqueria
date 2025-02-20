@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from database import get_db
 
-from schemas import ServicioBase, ServicioResponse, ServicioEdit
+from schemas import ServicioBase, ServicioResponse
 from uuid import UUID
 
 from datetime import date
@@ -51,14 +51,14 @@ async def crear_servicios (servicio: ServicioBase ,db=Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
     
 
-@router.put("/", response_model=ServicioResponse)
-async def actualizar_datos_servicio(servicio: ServicioEdit, db=Depends(get_db)):
+@router.put("/{servicio_id}", response_model=ServicioResponse)
+async def actualizar_datos_servicio(servicio_id: UUID, servicio: ServicioBase, db=Depends(get_db)):
     
     try:
-        servicio_anterior = await db.fetchrow(" SELECT * FROM servicios where id = $1;", servicio.id)
+        servicio_anterior = await db.fetchrow(" SELECT * FROM servicios where id = $1;", servicio_id)
 
         if not servicio_anterior:
-            raise HTTPException(status_code=404, detail=f"No se encontraro al servicio con id {servicio.id}")
+            raise HTTPException(status_code=404, detail=f"No se encontraro al servicio con id {servicio_id}")
         
         if not servicio.nombre:
             servicio.nombre = servicio_anterior['nombre']
@@ -79,10 +79,10 @@ async def actualizar_datos_servicio(servicio: ServicioEdit, db=Depends(get_db)):
                 precio = $3
             WHERE id = $4 
             RETURNING *;
-        """, servicio.nombre, servicio.duracion_minutos, servicio.precio, servicio.id)
+        """, servicio.nombre, servicio.duracion_minutos, servicio.precio, servicio_id)
 
         if not servicio_actualizado:
-            raise HTTPException(status_code=404, detail=f"Error al actualizar el servicio con id {servicio.id}")
+            raise HTTPException(status_code=404, detail=f"Error al actualizar el servicio con id {servicio_id}")
         
         return dict(servicio_actualizado)
     
@@ -93,7 +93,7 @@ async def actualizar_datos_servicio(servicio: ServicioEdit, db=Depends(get_db)):
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
     
 
-@router.delete("/")
+@router.delete("/{servicio_id}")
 async def eliminar_servicio(servicio_id: UUID, db=Depends(get_db)):
     
     try:

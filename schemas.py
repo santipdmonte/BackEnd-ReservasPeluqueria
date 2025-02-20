@@ -32,11 +32,6 @@ class EmpleadoBase(BaseModel):
 class EmpleadoCreate(EmpleadoBase):
     pass
 
-class EmpleadoEdit(BaseModel):
-    nombre: Optional[str] = None
-    especialidad: Optional[str] = None
-    id: UUID
-
 class EmpleadoResponse(EmpleadoBase):
     id: UUID
 
@@ -52,11 +47,6 @@ class ServicioBase(BaseModel):
 class ServicioCreate(ServicioBase):
     pass
 
-class ServicioEdit(BaseModel):
-    nombre: Optional[str] = None
-    duracion_minutos: Optional[int] = None
-    precio: Optional[Decimal] = None
-    id: UUID
 
 class ServicioResponse(ServicioBase):
     id: UUID
