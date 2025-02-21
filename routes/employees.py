@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from database import get_db
 
-from schemas import EmpleadoResponse, EmpleadoBase
+from schemas import EmpleadoResponse, EmpleadoBase, EmpleadoUpdate
 from uuid import UUID
 
 from datetime import date
@@ -52,7 +52,7 @@ async def crear_empleados (empleado: EmpleadoBase ,db=Depends(get_db)):
     
 
 @router.put("/{empleado_id}", response_model=EmpleadoResponse)
-async def actualizar_datos_empleado(empleado_id: UUID, empleado: EmpleadoBase, db=Depends(get_db)):
+async def actualizar_datos_empleado(empleado_id: UUID, empleado: EmpleadoUpdate, db=Depends(get_db)):
     
     try:
 

@@ -29,6 +29,10 @@ class EmpleadoBase(BaseModel):
     nombre: str
     especialidad: Optional[str] = None
 
+class EmpleadoUpdate(BaseModel):
+    nombre: Optional[str] = None
+    especialidad: Optional[str] = None
+
 class EmpleadoCreate(EmpleadoBase):
     pass
 
@@ -43,6 +47,11 @@ class ServicioBase(BaseModel):
     nombre: str
     duracion_minutos: int
     precio: Decimal
+
+class ServicioUpdate(BaseModel):
+    nombre: Optional[str] = None
+    duracion_minutos: Optional[int] = None
+    precio: Optional[Decimal] = None
 
 class ServicioCreate(ServicioBase):
     pass

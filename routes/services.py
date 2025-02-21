@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from database import get_db
 
-from schemas import ServicioBase, ServicioResponse
+from schemas import ServicioBase, ServicioResponse, ServicioUpdate
 from uuid import UUID
 
 from datetime import date
@@ -52,7 +52,7 @@ async def crear_servicios (servicio: ServicioBase ,db=Depends(get_db)):
     
 
 @router.put("/{servicio_id}", response_model=ServicioResponse)
-async def actualizar_datos_servicio(servicio_id: UUID, servicio: ServicioBase, db=Depends(get_db)):
+async def actualizar_datos_servicio(servicio_id: UUID, servicio: ServicioUpdate, db=Depends(get_db)):
     
     try:
         servicio_anterior = await db.fetchrow(" SELECT * FROM servicios where id = $1;", servicio_id)
