@@ -19,8 +19,8 @@ async def generar_horarios(db=Depends(get_db)):
         dias_plazo = semanas_plazo * 7
 
         desplazamiento_dias  = {
-                "L": 1 + dias_plazo + 7,
-                "M": 2 + dias_plazo + 8,
+                "L": 1 + dias_plazo,
+                "M": 2 + dias_plazo,
                 "X": 3 + dias_plazo,
                 "J": 4 + dias_plazo,
                 "V": 5 + dias_plazo,
@@ -135,6 +135,82 @@ async def crear_programacion_horarios(
         
         return dict(programacion_horarios)
 
+    except HTTPException as http_error:
+        raise http_error
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    
+@router.get("/")
+async def ver_programacion_horarios(
+    empleado_id: UUID = None,
+    dia: str = None,
+    db=Depends(get_db)
+):
+    try:
+        # Consulta base
+        query = """
+            SELECT 
+                programacion_horarios.id,
+                e.id as empleado_id,
+                e.nombre as nombre_empleado, 
+                programacion_horarios.dia as dia,
+                programacion_horarios.hora_inicio as hora_inicio,
+                programacion_horarios.hora_fin as hora_fin,
+                programacion_horarios.intervalo as intervalo
+            FROM programacion_horarios
+            INNER JOIN empleados e ON e.id = programacion_horarios.empleado_id
+            """
+        
+        filtros = []
+        parametros = []
+        contador_param = 1
+        
+        if empleado_id:
+            # Validar que el empleado exista
+            empleado_existe = await db.fetchrow("SELECT * FROM empleados WHERE id = $1;", empleado_id)
+            if not empleado_existe:
+                raise HTTPException(status_code=404, detail="No se encontró al empleado")
+                
+            filtros.append(f"e.id = ${contador_param}")
+            parametros.append(empleado_id)
+            contador_param += 1
+            
+        if dia:
+            # Validar que el dia sea válido
+            if dia not in ["L", "M", "X", "J", "V", "S", "D"]:
+                raise HTTPException(status_code=400, detail="El día debe ser uno de los siguientes: L, M, X, J, V, S, D")
+                
+            filtros.append(f"programacion_horarios.dia = ${contador_param}")
+            parametros.append(dia)
+            contador_param += 1
+            
+        if filtros:
+            query += " WHERE " + " AND ".join(filtros)
+
+                # Agregamos ORDER BY con CASE para ordenar los días correctamente
+        query += """
+            ORDER BY 
+                CASE 
+                    WHEN programacion_horarios.dia = 'L' THEN 1
+                    WHEN programacion_horarios.dia = 'M' THEN 2
+                    WHEN programacion_horarios.dia = 'X' THEN 3
+                    WHEN programacion_horarios.dia = 'J' THEN 4
+                    WHEN programacion_horarios.dia = 'V' THEN 5
+                    WHEN programacion_horarios.dia = 'S' THEN 6
+                    WHEN programacion_horarios.dia = 'D' THEN 7
+                END,
+                programacion_horarios.hora_inicio
+            """
+            
+        # Debug para ver la consulta y parámetros
+        print(query)
+        print(parametros)
+        
+        programacion_horarios = await db.fetch(query, *parametros)
+        
+        return [dict(ph) for ph in programacion_horarios]
+        
     except HTTPException as http_error:
         raise http_error
     
