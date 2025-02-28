@@ -375,3 +375,109 @@ async def bloquear_horarios(
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+    
+
+@router.post("/desbloquear")
+async def desbloquear_horarios(
+        empleado_id: UUID,
+        fecha: date,
+        hora_inicio: time = time(0, 0, 0),
+        hora_fin: time = time(23, 59, 59),
+        db=Depends(get_db)
+    ):
+    
+    try:
+        # Verificar que el empleado existe
+        empleado = await db.fetchrow("SELECT * FROM empleados WHERE id = $1;", empleado_id)
+        if not empleado:
+            raise HTTPException(status_code=404, detail=f"No se encontró el empleado con id {empleado_id}")
+
+        # Validar horas
+        if hora_inicio >= hora_fin:
+            raise HTTPException(status_code=400, detail="La hora de inicio debe ser menor a la hora de fin")
+        
+        # Verificar bloqueos existentes
+        horarios_bloqueados = await db.fetch(
+            """
+            SELECT * FROM horarios_disponibles 
+            WHERE 
+                empleado_id = $1 
+                AND fecha = $2 
+                AND hora >= $3 
+                AND hora < $4
+                AND disponible = FALSE;
+            """, 
+            empleado_id, fecha, hora_inicio, hora_fin
+        )
+        
+        if not horarios_bloqueados:
+            # Verificar en la tabla de bloqueos_horarios
+            bloqueos = await db.fetch(
+                """
+                SELECT * FROM bloqueos_horarios 
+                WHERE 
+                    empleado_id = $1 
+                    AND fecha = $2
+                    AND hora >= $3
+                    AND hora < $4;
+                """, 
+                empleado_id, fecha, hora_inicio, hora_fin
+            )
+            
+            if bloqueos:
+                for bloqueo in bloqueos:
+                    await db.execute(
+                    """
+                        DELETE FROM bloqueos_horarios
+                        WHERE id = $1;
+                    """, bloqueo["id"])
+                
+                return {"mensaje": "Horarios desbloqueados correctamente"}
+            else:
+                return {"mensaje": "No hay horarios bloqueados en el rango seleccionado"}
+        
+        # Buscar horarios que tienen turnos asignados
+        horarios_con_turno = []
+        for horario in horarios_bloqueados:
+            turno = await db.fetchrow(
+                """
+                SELECT * FROM turnos 
+                WHERE 
+                    empleado_id = $1 
+                    AND fecha = $2 
+                    AND hora = $3 
+                    AND estado = 'confirmado';
+                """, 
+                empleado_id, fecha, horario["hora"]
+            )
+            if turno:
+                horarios_con_turno.append(horario["hora"])
+        
+        # Desbloquear solo los horarios sin turnos asignados
+        await db.execute(
+            """
+            UPDATE horarios_disponibles
+            SET disponible = TRUE
+            WHERE 
+                empleado_id = $1
+                AND fecha = $2
+                AND hora >= $3
+                AND hora < $4
+                AND hora NOT IN (SELECT hora FROM turnos WHERE empleado_id = $1 AND fecha = $2 AND estado = 'confirmado');
+            """, 
+            empleado_id, fecha, hora_inicio, hora_fin
+        )
+        
+        # Informar si algunos horarios no se pudieron desbloquear por tener turnos
+        if horarios_con_turno:
+            return {
+                "mensaje": f"Se desbloquearon los horarios sin turnos asignados. Los siguientes horarios mantienen el bloqueo por tener turnos asignados: {horarios_con_turno}"
+            }
+        else:
+            return {"mensaje": "Todos los horarios seleccionados fueron desbloqueados correctamente"}
+
+    except HTTPException as http_error:
+        raise http_error
+    
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
