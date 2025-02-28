@@ -8,15 +8,15 @@ from datetime import date, datetime, timedelta, time
 router = APIRouter(prefix="/horarios", tags=["Horarios"])
 
 
-@router.post("/prueba")
-async def generar_horarios(db=Depends(get_db)):
+@router.post("/generar_horrarios")
+async def generar_horarios_semanales(db=Depends(get_db)):
     """
     Funcion recurrente que genera todos los horarios disponibles el domingo de cada semana
     """
     
     try:
-        semanas_plazo = 2 
-        dias_plazo = semanas_plazo * 7
+        semanas_plazo = 1 
+        dias_plazo = semanas_plazo * 7 + 2
 
         desplazamiento_dias  = {
                 "L": 1 + dias_plazo,
