@@ -1,14 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import bookings, users, employees, services, disponibilidad
+from routes import empleados, horarios, servicios, turnos, usuarios
 from mangum import Mangum
 
 app = FastAPI(title="API de Peluquería", version="1.0")
-app.include_router(bookings.router)
-app.include_router(users.router)
-app.include_router(employees.router)
-app.include_router(services.router)
-app.include_router(disponibilidad.router)
+app.include_router(turnos.router)
+app.include_router(usuarios.router)
+app.include_router(empleados.router)
+app.include_router(servicios.router)
+app.include_router(horarios.router)
 
 
 # Configurar CORS

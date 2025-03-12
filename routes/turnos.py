@@ -5,7 +5,7 @@ from typing import Optional
 
 from database import get_db
 from schemas import TurnoBase, TurnoResponse
-from services.reservas import (
+from services.turnos import (
     create_turno_service,
     get_horarios_disponibles,
     get_turno,

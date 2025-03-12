@@ -45,6 +45,14 @@ async def create_usuario_service(usuario: UsuarioBase, db) -> dict:
     return dict(result)
 
 
+async def get_usuario_service(user_id: UUID, db) -> dict:
+    query = "SELECT * FROM usuarios WHERE id = $1"
+    user = await db.fetchrow(query, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    return dict(user)
+
+
 async def update_usuario_service(usuario_new: UsuarioUpdate, db) -> dict:
     try:
         # Buscar el usuario a actualizar
