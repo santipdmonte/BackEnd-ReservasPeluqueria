@@ -1,131 +1,33 @@
-from fastapi import APIRouter, Depends, HTTPException
-from database import get_db
-
-from schemas import EmpleadoResponse, EmpleadoBase, EmpleadoUpdate
+from fastapi import APIRouter, Depends
 from uuid import UUID
-
-from datetime import date
+from database import get_db
+from schemas import EmpleadoResponse, EmpleadoBase, EmpleadoUpdate
+from services.empleados import (
+    get_empleados_service,
+    create_empleado_service,
+    update_empleado_service,
+    delete_empleado_service,
+    get_empleado_by_id_service
+)
 
 router = APIRouter(prefix="/empleados", tags=["Empleados"])
 
-
 @router.get("/", response_model=list[EmpleadoResponse])
 async def obtener_empleados(db=Depends(get_db)):
-    
-    try:
-        empleados = await db.fetch("SELECT * FROM empleados;")
-
-        if not empleados:
-            raise HTTPException(status_code=404, detail=f"No se encontraron empleados")
-        
-        return [dict(empleado) for empleado in empleados]
-    
-    except HTTPException as http_error:
-        raise http_error
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
-    
+    return await get_empleados_service(db)
 
 @router.post("/", response_model=EmpleadoResponse)
-async def crear_empleados (empleado: EmpleadoBase ,db=Depends(get_db)):
-    
-    try:
-
-        nuevo_empleado = await db.fetchrow(
-        """
-            INSERT INTO empleados (nombre, especialidad)
-            VALUES ($1, $2)
-            RETURNING *;
-        """, empleado.nombre, empleado.especialidad)    
-
-        if not nuevo_empleado:
-            raise HTTPException(status_code=404, detail=f"Error al crear el nuevo empleado")
-        
-        return dict(nuevo_empleado)
-    
-    except HTTPException as http_error:
-        raise http_error
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
-    
+async def crear_empleado(empleado: EmpleadoBase, db=Depends(get_db)):
+    return await create_empleado_service(empleado, db)
 
 @router.put("/{empleado_id}", response_model=EmpleadoResponse)
 async def actualizar_datos_empleado(empleado_id: UUID, empleado: EmpleadoUpdate, db=Depends(get_db)):
-    
-    try:
-
-        empleado_anterior = await db.fetchrow(" SELECT * FROM empleados where id = $1;", empleado_id)
-        
-        if not empleado_anterior:
-            raise HTTPException(status_code=404, detail=f"No se encontraro al empleado con id {empleado_id}")
-        
-        if not empleado.nombre:
-            empleado.nombre = empleado_anterior['nombre']
-
-        if not empleado.especialidad:
-            empleado.especialidad = empleado_anterior['especialidad']
-
-        empleado_actualizado = await db.fetchrow(
-        """
-            UPDATE empleados
-            SET 
-                nombre = $1, 
-                especialidad = $2
-            WHERE id = $3 
-            RETURNING *;
-        """, empleado.nombre, empleado.especialidad, empleado_id)
-
-        if not empleado_actualizado:
-            raise HTTPException(status_code=404, detail=f"Error al actualizar el empleado con id {empleado_id}")
-        
-        return dict(empleado_actualizado)
-    
-    except HTTPException as http_error:
-        raise http_error
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
-    
+    return await update_empleado_service(empleado_id, empleado, db)
 
 @router.delete("/{empleado_id}")
 async def eliminar_empleado(empleado_id: UUID, db=Depends(get_db)):
-    
-    try:
-
-        resultado = await db.execute(
-            "DELETE FROM empleados WHERE id = $1;",
-            empleado_id
-        )
-        
-        if resultado == "DELETE 0":  # Si no se eliminó ningún registro
-            raise HTTPException(status_code=404, detail=f"Empleado no encontrado")
-        
-        return {"mensaje": "Empleado eliminado correctamente"}
-    
-    except HTTPException as http_error:
-        raise http_error
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
-
+    return await delete_empleado_service(empleado_id, db)
 
 @router.get("/{empleado_id}", response_model=EmpleadoResponse)
 async def obtener_empleado_by_id(empleado_id: UUID, db=Depends(get_db)):
-    
-    try:
-        empleado = await db.fetchrow(" SELECT * FROM empleados where id = $1; ", empleado_id)
-
-        if not empleado:
-            raise HTTPException(status_code=404, detail=f"No se encontraro al empleado con id {empleado_id}")
-        
-        return dict(empleado)
-    
-    except HTTPException as http_error:
-        raise http_error
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
-    
-
+    return await get_empleado_by_id_service(empleado_id, db)
