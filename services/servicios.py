@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from uuid import UUID
-from schemas import ServicioBase, ServicioResponse, ServicioUpdate
+from schemas import ServicioBase, ServicioUpdate
 
 async def get_servicios_service(db) -> list:
     try:

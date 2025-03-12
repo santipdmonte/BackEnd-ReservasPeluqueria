@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from uuid import UUID
-from schemas import UsuarioResponse, UsuarioBase, UsuarioUpdate
+from schemas import UsuarioBase, UsuarioUpdate
 
 async def create_usuario_service(usuario: UsuarioBase, db) -> dict:
     # Verificar que no exista un usuario con el mismo número de teléfono
