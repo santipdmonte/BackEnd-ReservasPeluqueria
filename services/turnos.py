@@ -1,32 +1,32 @@
 from datetime import date
 from uuid import UUID
 from typing import Optional
-from fastapi import HTTPException
-
 from schemas import TurnoBase
+from exception_handlers import NotFoundError, ValidationError, OperationError, AppException
 
 async def create_turno_service(turno: TurnoBase, db) -> dict:
     try:
         async with db.transaction():
             # Validar que la fecha no sea menor a la actual
             if turno.fecha < date.today():
-                raise HTTPException(status_code=400, detail="La fecha del turno no puede ser menor a la actual")
+                raise ValidationError("La fecha del turno no puede ser menor a la actual")
 
             # Verificar existencia de usuario, empleado y servicio
             usuario = await db.fetchrow("SELECT id FROM usuarios WHERE id = $1", turno.usuario_id)
             if not usuario:
-                raise HTTPException(status_code=404, detail="Usuario no encontrado")
+                raise NotFoundError("Usuario no encontrado")
 
             empleado = await db.fetchrow("SELECT id FROM empleados WHERE id = $1", turno.empleado_id)
             if not empleado:
-                raise HTTPException(status_code=404, detail="Empleado no encontrado")
+                raise NotFoundError("Empleado no encontrado")
 
             servicio = await db.fetchrow("SELECT id FROM servicios WHERE id = $1", turno.servicio_id)
             if not servicio:
-                raise HTTPException(status_code=404, detail="Servicio no encontrado") 
+                raise NotFoundError("Servicio no encontrado") 
 
             # Verificar disponibilidad del horario
-            disponible = await db.fetchval("""
+            disponible = await db.fetchval(
+                """
                 SELECT EXISTS (
                     SELECT 1 FROM horarios_disponibles 
                     WHERE fecha = $1 
@@ -37,20 +37,22 @@ async def create_turno_service(turno: TurnoBase, db) -> dict:
                 """, turno.fecha, turno.hora, turno.empleado_id
             )
             if not disponible:
-                raise HTTPException(status_code=400, detail="El horario seleccionado no está disponible")
+                raise ValidationError("El horario seleccionado no está disponible")
 
             # Insertar el nuevo turno
-            nuevo_turno = await db.fetchrow("""
+            nuevo_turno = await db.fetchrow(
+                """
                 INSERT INTO turnos (usuario_id, empleado_id, servicio_id, fecha, hora, estado)
                 VALUES ($1, $2, $3, $4, $5, 'confirmado')
                 RETURNING id, usuario_id, empleado_id, servicio_id, fecha, hora, estado;
                 """, turno.usuario_id, turno.empleado_id, turno.servicio_id, turno.fecha, turno.hora
             )
             if not nuevo_turno:
-                raise HTTPException(status_code=500, detail="Error al crear el turno")
+                raise OperationError("Error al crear el turno")
             
             # Actualizar el horario a no disponible
-            horario_actualizado = await db.fetchval("""
+            horario_actualizado = await db.fetchval(
+                """
                 UPDATE horarios_disponibles 
                 SET disponible = FALSE 
                 WHERE fecha = $1 
@@ -60,22 +62,23 @@ async def create_turno_service(turno: TurnoBase, db) -> dict:
                 """, turno.fecha, turno.hora, turno.empleado_id
             )
             if not horario_actualizado:
-                raise HTTPException(status_code=400, detail="No se pudo reservar el horario seleccionado")
+                raise OperationError("No se pudo reservar el horario seleccionado")
             
             return dict(nuevo_turno)
-    except HTTPException as http_err:
-        raise http_err
+    except AppException as ae:
+        raise ae
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise OperationError(f"Error interno: {str(e)}")
 
 
 async def get_horarios_disponibles(fecha: date, empleado_id: Optional[UUID], db) -> list:
     try:
         if fecha < date.today():
-            raise HTTPException(status_code=400, detail="No se pueden consultar fechas pasadas")
+            raise ValidationError("No se pueden consultar fechas pasadas")
 
         if empleado_id:
-            turnos = await db.fetch("""
+            turnos = await db.fetch(
+                """
                 SELECT 
                     fecha,
                     hora,
@@ -92,7 +95,7 @@ async def get_horarios_disponibles(fecha: date, empleado_id: Optional[UUID], db)
                 """, empleado_id, fecha
             )
             if not turnos:
-                raise HTTPException(status_code=404, detail=f"No se encontraron turnos disponibles para el {fecha} con este empleado")
+                raise NotFoundError(f"No se encontraron turnos disponibles para el {fecha} con este empleado")
         else:
             turnos = await db.fetch(
                 """
@@ -110,29 +113,26 @@ async def get_horarios_disponibles(fecha: date, empleado_id: Optional[UUID], db)
                 """, fecha
             )
             if not turnos:
-                raise HTTPException(status_code=404, detail=f"No se encontraron turnos disponibles para el {fecha}")
+                raise NotFoundError(f"No se encontraron turnos disponibles para el {fecha}")
         
         return [dict(turno) for turno in turnos]
-    except HTTPException as http_err:
-        raise http_err
+    except AppException as ae:
+        raise ae
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+        raise OperationError(f"Error interno: {str(e)}")
 
 
 async def get_turno(turno_id: UUID, db) -> dict:
     try:
-
         query = "SELECT * FROM turnos WHERE id = $1"
         turno = await db.fetchrow(query, turno_id)
         if not turno:
-            raise HTTPException(status_code=404, detail="Turno no encontrado")
+            raise NotFoundError("Turno no encontrado")
         return dict(turno)
-    
-    except HTTPException as http_err:
-        raise http_err
-    
+    except AppException as ae:
+        raise ae
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+        raise OperationError(f"Error interno: {str(e)}")
 
 
 async def cancel_turno(turno_id: UUID, db) -> any:
@@ -141,9 +141,9 @@ async def cancel_turno(turno_id: UUID, db) -> any:
             # Verificar si el turno existe y su estado
             turno = await db.fetchrow("SELECT * FROM turnos WHERE id = $1;", turno_id)
             if not turno:
-                raise HTTPException(status_code=404, detail="Turno no encontrado")
+                raise NotFoundError("Turno no encontrado")
             if turno["estado"] == "cancelado":
-                raise HTTPException(status_code=400, detail="El turno ya fue cancelado")
+                raise ValidationError("El turno ya fue cancelado")
 
             # Cancelar el turno
             deleted_turno = await db.execute(
@@ -154,7 +154,7 @@ async def cancel_turno(turno_id: UUID, db) -> any:
                 """, turno_id
             )
             if deleted_turno == 0:
-                raise HTTPException(status_code=400, detail="Error al eliminar el turno")
+                raise OperationError("Error al eliminar el turno")
             
             # Liberar el horario reservado
             await db.execute(
@@ -168,10 +168,10 @@ async def cancel_turno(turno_id: UUID, db) -> any:
             )
 
             return deleted_turno
-    except HTTPException as http_err:
-        raise http_err
+    except AppException as ae:
+        raise ae
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+        raise OperationError(f"Error interno: {str(e)}")
 
 
 async def modify_turno(turno_id: UUID, nuevo_turno: TurnoBase, db) -> dict:
@@ -187,21 +187,21 @@ async def modify_turno(turno_id: UUID, nuevo_turno: TurnoBase, db) -> dict:
                 """, turno_id
             )
             if not turno_anterior:
-                raise HTTPException(status_code=404, detail="Turno no encontrado")
+                raise NotFoundError("Turno no encontrado")
 
             # Crear el nuevo turno
             nuevo = await create_turno_service(nuevo_turno, db)
             if not nuevo:
-                raise HTTPException(status_code=500, detail="Error al asignar el nuevo turno")
+                raise OperationError("Error al asignar el nuevo turno")
 
             # Cancelar el turno anterior
             await cancel_turno(turno_id, db)
 
             return nuevo
-    except HTTPException as http_err:
-        raise http_err
+    except AppException as ae:
+        raise ae
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+        raise OperationError(f"Error interno: {str(e)}")
 
 
 async def get_turnos_by_user(user_id: UUID, db) -> list:
@@ -209,7 +209,7 @@ async def get_turnos_by_user(user_id: UUID, db) -> list:
         # Verificar que el usuario exista
         usuario = await db.fetchrow("SELECT id FROM usuarios WHERE id = $1", user_id)
         if not usuario:
-            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+            raise NotFoundError("Usuario no encontrado")
         
         # Obtener turnos del usuario
         turnos = await db.fetch(
@@ -221,16 +221,16 @@ async def get_turnos_by_user(user_id: UUID, db) -> list:
             """, user_id
         )
         return [dict(turno) for turno in turnos] if turnos else []
-    except HTTPException as http_err:
-        raise http_err
+    except AppException as ae:
+        raise ae
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+        raise OperationError(f"Error interno: {str(e)}")
 
 
 async def get_turnos_agendados_by_date(fecha: date, db) -> list:
     try:
         if fecha < date.today():
-            raise HTTPException(status_code=400, detail="No se pueden consultar fechas pasadas")
+            raise ValidationError("No se pueden consultar fechas pasadas")
 
         turnos = await db.fetch(
             """
@@ -252,9 +252,9 @@ async def get_turnos_agendados_by_date(fecha: date, db) -> list:
             """, fecha
         )
         if not turnos:
-            raise HTTPException(status_code=404, detail=f"No se encontraron turnos agendados para el {fecha}")
+            raise NotFoundError(f"No se encontraron turnos agendados para el {fecha}")
         return [dict(turno) for turno in turnos]
-    except HTTPException as http_err:
-        raise http_err
+    except AppException as ae:
+        raise ae
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error interno: {str(e)}")
+        raise OperationError(f"Error interno: {str(e)}")

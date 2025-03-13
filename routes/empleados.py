@@ -14,7 +14,7 @@ router = APIRouter(prefix="/empleados", tags=["Empleados"])
 
 @router.get("/", response_model=list[EmpleadoResponse])
 async def obtener_empleados(db=Depends(get_db)):
-    return await get_empleados_service(db)
+    return await get_empleados_service(db)   
 
 @router.post("/", response_model=EmpleadoResponse)
 async def crear_empleado(empleado: EmpleadoBase, db=Depends(get_db)):

@@ -2,8 +2,15 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes import empleados, horarios, servicios, turnos, usuarios
 from mangum import Mangum
+from exception_handlers import custom_exception_handler, NotFoundError, ValidationError, OperationError, AppException
 
 app = FastAPI(title="API de Peluquería", version="1.0")
+
+app.add_exception_handler(NotFoundError, custom_exception_handler)
+app.add_exception_handler(ValidationError, custom_exception_handler)
+app.add_exception_handler(OperationError, custom_exception_handler)
+app.add_exception_handler(AppException, custom_exception_handler)
+
 app.include_router(turnos.router)
 app.include_router(usuarios.router)
 app.include_router(empleados.router)
