@@ -2,7 +2,7 @@ from uuid import UUID
 from schemas import EmpleadoBase, EmpleadoUpdate
 from exception_handlers import AppException, NotFoundError, ValidationError, OperationError
 
-async def get_empleados_service(db) -> list:
+async def obtener_empleados(db) -> list:
     try:
         empleados = await db.fetch("SELECT * FROM empleados;")
         if not empleados:
@@ -13,7 +13,7 @@ async def get_empleados_service(db) -> list:
     except Exception as e:
         raise OperationError(f"Error interno: {str(e)}")
 
-async def create_empleado_service(empleado: EmpleadoBase, db) -> dict:
+async def crear_empleado(empleado: EmpleadoBase, db) -> dict:
     try:
         nuevo_empleado = await db.fetchrow(
             """
@@ -31,7 +31,7 @@ async def create_empleado_service(empleado: EmpleadoBase, db) -> dict:
     except Exception as e:
         raise OperationError(f"Error interno: {str(e)}")
 
-async def update_empleado_service(empleado_id: UUID, empleado: EmpleadoUpdate, db) -> dict:
+async def actualizar_empleado(empleado_id: UUID, empleado: EmpleadoUpdate, db) -> dict:
     try:
         empleado_anterior = await db.fetchrow("SELECT * FROM empleados WHERE id = $1;", empleado_id)
         if not empleado_anterior:
@@ -60,7 +60,7 @@ async def update_empleado_service(empleado_id: UUID, empleado: EmpleadoUpdate, d
     except Exception as e:
         raise OperationError(f"Error interno: {str(e)}")
 
-async def delete_empleado_service(empleado_id: UUID, db) -> dict:
+async def eliminar_empleado(empleado_id: UUID, db) -> dict:
     try:
         resultado = await db.execute("DELETE FROM empleados WHERE id = $1;", empleado_id)
         if resultado == "DELETE 0":
@@ -71,7 +71,7 @@ async def delete_empleado_service(empleado_id: UUID, db) -> dict:
     except Exception as e:
         raise OperationError(f"Error interno: {str(e)}")
 
-async def get_empleado_by_id_service(empleado_id: UUID, db) -> dict:
+async def obtener_empleado_by_id(empleado_id: UUID, db) -> dict:
     try:
         empleado = await db.fetchrow("SELECT * FROM empleados WHERE id = $1;", empleado_id)
         if not empleado:
