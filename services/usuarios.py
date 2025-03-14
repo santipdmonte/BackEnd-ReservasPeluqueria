@@ -2,7 +2,7 @@ from uuid import UUID
 from schemas import UsuarioBase, UsuarioUpdate
 from exception_handlers import NotFoundError, ValidationError, OperationError, AppException
 
-async def create_usuario_service(usuario: UsuarioBase, db) -> dict:
+async def crear_usuario(usuario: UsuarioBase, db) -> dict:
     try:
         # Verificar que no exista un usuario con el mismo número de teléfono
         existe_telefono = await db.fetchval(
@@ -50,7 +50,7 @@ async def create_usuario_service(usuario: UsuarioBase, db) -> dict:
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def get_usuario_service(user_id: UUID, db) -> dict:
+async def obtener_usuario(user_id: UUID, db) -> dict:
     try:
         query = "SELECT * FROM usuarios WHERE id = $1"
         user = await db.fetchrow(query, user_id)
@@ -63,7 +63,7 @@ async def get_usuario_service(user_id: UUID, db) -> dict:
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def update_usuario_service(usuario_new: UsuarioUpdate, db) -> dict:
+async def actualizar_usuario(usuario_new: UsuarioUpdate, db) -> dict:
     try:
         # Buscar el usuario a actualizar
         usuario = await db.fetchrow("SELECT * FROM usuarios WHERE id = $1;", usuario_new.id)
@@ -109,7 +109,7 @@ async def update_usuario_service(usuario_new: UsuarioUpdate, db) -> dict:
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def get_usuario_by_phone_service(telefono: str, db) -> dict:
+async def obtener_usuario_por_telefono(telefono: str, db) -> dict:
     try:
         query = "SELECT * FROM usuarios WHERE telefono = $1"
         user = await db.fetchrow(query, telefono)
@@ -122,7 +122,7 @@ async def get_usuario_by_phone_service(telefono: str, db) -> dict:
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def get_historial_del_usuario_service(user_id: UUID, db) -> list:
+async def obtener_historial_usuario(user_id: UUID, db) -> list:
     try:
         # Validar que el usuario exista
         if not await db.fetchrow("SELECT * FROM usuarios WHERE id = $1", user_id):

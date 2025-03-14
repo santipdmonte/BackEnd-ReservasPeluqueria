@@ -4,33 +4,33 @@ from uuid import UUID
 from database import get_db
 from schemas import UsuarioResponse, UsuarioBase, UsuarioUpdate
 from services.usuarios import (
-    create_usuario_service,
-    get_usuario_service,
-    update_usuario_service,
-    get_usuario_by_phone_service,
-    get_historial_del_usuario_service
+    crear_usuario,
+    obtener_usuario,
+    actualizar_usuario,
+    obtener_usuario_por_telefono,
+    obtener_historial_usuario
 )
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
 
 @router.post("/", response_model=UsuarioResponse)
-async def crear_usuario(usuario: UsuarioBase, db=Depends(get_db)):
-    return await create_usuario_service(usuario, db)
+async def crear_usuario_endpoint(usuario: UsuarioBase, db=Depends(get_db)):
+    return await crear_usuario(usuario, db)
 
 @router.get("/{user_id}", response_model=UsuarioResponse)
-async def get_usuario(user_id: UUID, db=Depends(get_db)):
-    return await get_usuario_service(user_id, db)
+async def obtener_usuario_endpoint(user_id: UUID, db=Depends(get_db)):
+    return await obtener_usuario(user_id, db)
 
 @router.put("/", response_model=UsuarioResponse)
-async def actualizar_usuario(usuario_new: UsuarioUpdate, db=Depends(get_db)):
-    return await update_usuario_service(usuario_new, db)
+async def actualizar_usuario_endpoint(usuario_new: UsuarioUpdate, db=Depends(get_db)):
+    return await actualizar_usuario(usuario_new, db)
 
 
 @router.get("/telefono/{telefono}", response_model=UsuarioResponse)
-async def obtener_usuario_by_phone_number(telefono: str, db=Depends(get_db)):
-    return await get_usuario_by_phone_service(telefono, db)
+async def obtener_usuario_por_telefono_endpoint(telefono: str, db=Depends(get_db)):
+    return await obtener_usuario_por_telefono(telefono, db)
 
 
 @router.get("/historial/{user_id}")
-async def obtener_historial_del_usuario(user_id: UUID, db=Depends(get_db)):
-    return await get_historial_del_usuario_service(user_id, db)
+async def obtener_historial_usuario_endpoint(user_id: UUID, db=Depends(get_db)):
+    return await obtener_historial_usuario(user_id, db)
