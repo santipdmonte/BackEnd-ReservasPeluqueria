@@ -2,7 +2,7 @@ from uuid import UUID
 from datetime import date, datetime, timedelta, time
 from exception_handlers import AppException, NotFoundError, ValidationError, OperationError
 
-async def generar_horarios_semanales_service(db) -> dict:
+async def generacion_horarios_semanales(db) -> dict:
     try:
         semanas_plazo = 2
         dias_plazo = semanas_plazo * 7
@@ -70,7 +70,7 @@ async def generar_horarios_semanales_service(db) -> dict:
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def crear_programacion_horarios_service(empleado_id: UUID, dia: str, hora_inicio: time, hora_fin: time, intervalo: int, db) -> dict:
+async def crear_programacion_horarios(empleado_id: UUID, dia: str, hora_inicio: time, hora_fin: time, intervalo: int, db) -> dict:
     try:
         # Validar que el empleado exista
         if not await db.fetchrow("SELECT * FROM empleados WHERE id = $1;", empleado_id):
@@ -116,7 +116,7 @@ async def crear_programacion_horarios_service(empleado_id: UUID, dia: str, hora_
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def ver_programacion_horarios_service(db, empleado_id: UUID = None, dia: str = None) -> list:
+async def obtener_programacion_horarios(db, empleado_id: UUID = None, dia: str = None) -> list:
     try:
         query = """
             SELECT 
@@ -175,7 +175,7 @@ async def ver_programacion_horarios_service(db, empleado_id: UUID = None, dia: s
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def actualizar_programacion_horarios_service(id: UUID, hora_inicio: time = None, hora_fin: time = None, intervalo: int = None, db=None) -> dict:
+async def actualizar_programacion_horarios(id: UUID, hora_inicio: time = None, hora_fin: time = None, intervalo: int = None, db=None) -> dict:
     try:
         if not hora_inicio and not hora_fin and not intervalo:
             raise ValidationError("Debe ingresar al menos un campo para actualizar")
@@ -227,7 +227,7 @@ async def actualizar_programacion_horarios_service(id: UUID, hora_inicio: time =
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def eliminar_programacion_horarios_service(id: UUID, db) -> dict:
+async def eliminar_programacion_horarios(id: UUID, db) -> dict:
     try:
         resultado = await db.execute("DELETE FROM programacion_horarios WHERE id = $1;", id)
         if resultado == "DELETE 0":
@@ -239,7 +239,7 @@ async def eliminar_programacion_horarios_service(id: UUID, db) -> dict:
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def bloquear_horarios_service(empleado_id: UUID, fecha: date, hora_inicio: time, hora_fin: time, db) -> dict:
+async def bloquear_horarios(empleado_id: UUID, fecha: date, hora_inicio: time, hora_fin: time, db) -> dict:
     try:
         empleado = await db.fetchrow("SELECT * FROM empleados WHERE id = $1;", empleado_id)
         if not empleado:
@@ -294,7 +294,7 @@ async def bloquear_horarios_service(empleado_id: UUID, fecha: date, hora_inicio:
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def desbloquear_horarios_service(empleado_id: UUID, fecha: date, hora_inicio: time, hora_fin: time, db) -> dict:
+async def desbloquear_horarios(empleado_id: UUID, fecha: date, hora_inicio: time, hora_fin: time, db) -> dict:
     try:
         empleado = await db.fetchrow("SELECT * FROM empleados WHERE id = $1;", empleado_id)
         if not empleado:
