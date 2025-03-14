@@ -2,7 +2,7 @@ from uuid import UUID
 from schemas import ServicioBase, ServicioUpdate
 from exception_handlers import AppException, NotFoundError, ValidationError, OperationError
 
-async def get_servicios_service(db) -> list:
+async def obtener_servicios(db) -> list:
     try:
         servicios = await db.fetch("SELECT * FROM servicios;")
         if not servicios:
@@ -13,7 +13,7 @@ async def get_servicios_service(db) -> list:
     except Exception as e:
         raise OperationError(f"Error interno: {str(e)}")
 
-async def create_servicio_service(servicio: ServicioBase, db) -> dict:
+async def crear_servicio(servicio: ServicioBase, db) -> dict:
     try:
         nuevo_servicio = await db.fetchrow(
             """
@@ -30,7 +30,7 @@ async def create_servicio_service(servicio: ServicioBase, db) -> dict:
     except Exception as e:
         raise OperationError(f"Error interno: {str(e)}")
 
-async def update_servicio_service(servicio_id: UUID, servicio: ServicioUpdate, db) -> dict:
+async def actualizar_servicio(servicio_id: UUID, servicio: ServicioUpdate, db) -> dict:
     try:
         servicio_anterior = await db.fetchrow("SELECT * FROM servicios WHERE id = $1;", servicio_id)
         if not servicio_anterior:
@@ -60,7 +60,7 @@ async def update_servicio_service(servicio_id: UUID, servicio: ServicioUpdate, d
     except Exception as e:
         raise OperationError(f"Error interno: {str(e)}")
 
-async def delete_servicio_service(servicio_id: UUID, db) -> dict:
+async def eliminar_servicio(servicio_id: UUID, db) -> dict:
     try:
         resultado = await db.execute("DELETE FROM servicios WHERE id = $1;", servicio_id)
         if resultado == "DELETE 0":
@@ -71,7 +71,7 @@ async def delete_servicio_service(servicio_id: UUID, db) -> dict:
     except Exception as e:
         raise OperationError(f"Error interno: {str(e)}")
 
-async def get_servicio_by_id_service(servicio_id: UUID, db) -> dict:
+async def obtener_servicio_by_id(servicio_id: UUID, db) -> dict:
     try:
         servicio = await db.fetchrow("SELECT * FROM servicios WHERE id = $1;", servicio_id)
         if not servicio:
