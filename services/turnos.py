@@ -4,7 +4,7 @@ from typing import Optional
 from schemas import TurnoBase
 from exception_handlers import NotFoundError, ValidationError, OperationError, AppException
 
-async def create_turno_service(turno: TurnoBase, db) -> dict:
+async def crear_turno(turno: TurnoBase, db) -> dict:
     try:
         async with db.transaction():
             # Validar que la fecha no sea menor a la actual
@@ -71,7 +71,7 @@ async def create_turno_service(turno: TurnoBase, db) -> dict:
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def get_horarios_disponibles(fecha: date, empleado_id: Optional[UUID], db) -> list:
+async def obtener_turnos_disponibles(fecha: date, empleado_id: Optional[UUID], db) -> list:
     try:
         if fecha < date.today():
             raise ValidationError("No se pueden consultar fechas pasadas")
@@ -122,7 +122,7 @@ async def get_horarios_disponibles(fecha: date, empleado_id: Optional[UUID], db)
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def get_turno(turno_id: UUID, db) -> dict:
+async def obtener_turno(turno_id: UUID, db) -> dict:
     try:
         query = "SELECT * FROM turnos WHERE id = $1"
         turno = await db.fetchrow(query, turno_id)
@@ -135,7 +135,7 @@ async def get_turno(turno_id: UUID, db) -> dict:
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def cancel_turno(turno_id: UUID, db) -> any:
+async def cancelar_turno(turno_id: UUID, db) -> any:
     try:
         async with db.transaction():
             # Verificar si el turno existe y su estado
@@ -174,7 +174,7 @@ async def cancel_turno(turno_id: UUID, db) -> any:
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def modify_turno(turno_id: UUID, nuevo_turno: TurnoBase, db) -> dict:
+async def modificar_turno(turno_id: UUID, nuevo_turno: TurnoBase, db) -> dict:
     try:
         async with db.transaction():
             # Validar que el turno a editar exista y esté confirmado
@@ -190,12 +190,12 @@ async def modify_turno(turno_id: UUID, nuevo_turno: TurnoBase, db) -> dict:
                 raise NotFoundError("Turno no encontrado")
 
             # Crear el nuevo turno
-            nuevo = await create_turno_service(nuevo_turno, db)
+            nuevo = await crear_turno(nuevo_turno, db)
             if not nuevo:
                 raise OperationError("Error al asignar el nuevo turno")
 
             # Cancelar el turno anterior
-            await cancel_turno(turno_id, db)
+            await cancelar_turno(turno_id, db)
 
             return nuevo
     except AppException as ae:
@@ -204,7 +204,7 @@ async def modify_turno(turno_id: UUID, nuevo_turno: TurnoBase, db) -> dict:
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def get_turnos_by_user(user_id: UUID, db) -> list:
+async def obtener_turnos_por_usuario(user_id: UUID, db) -> list:
     try:
         # Verificar que el usuario exista
         usuario = await db.fetchrow("SELECT id FROM usuarios WHERE id = $1", user_id)
@@ -227,7 +227,7 @@ async def get_turnos_by_user(user_id: UUID, db) -> list:
         raise OperationError(f"Error interno: {str(e)}")
 
 
-async def get_turnos_agendados_by_date(fecha: date, db) -> list:
+async def obtener_turnos_agendados_por_fecha(fecha: date, db) -> list:
     try:
         if fecha < date.today():
             raise ValidationError("No se pueden consultar fechas pasadas")
