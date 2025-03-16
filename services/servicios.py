@@ -1,83 +1,97 @@
 from uuid import UUID
 from schemas import ServicioBase, ServicioUpdate
-from exception_handlers import AppException, NotFoundError, ValidationError, OperationError
+from exception_handlers import AppException, NotFoundError, ValidationError, OperationError, try_except_closeCursor
+from utils.helpers import fetchall_to_dict, fetchone_to_dict
 
-async def obtener_servicios(db) -> list:
-    try:
-        servicios = await db.fetch("SELECT * FROM servicios;")
-        if not servicios:
-            raise NotFoundError("No se encontraron servicios")
-        return [dict(servicio) for servicio in servicios]
-    except AppException as ae:
-        raise ae
-    except Exception as e:
-        raise OperationError(f"Error interno: {str(e)}")
+@try_except_closeCursor
+def obtener_servicios(db) -> list:
 
-async def crear_servicio(servicio: ServicioBase, db) -> dict:
-    try:
-        nuevo_servicio = await db.fetchrow(
-            """
-            INSERT INTO servicios (nombre, duracion_minutos, precio)
-            VALUES ($1, $2, $3)
-            RETURNING *;
-            """, servicio.nombre, servicio.duracion_minutos, servicio.precio
-        )
-        if not nuevo_servicio:
-            raise OperationError("Error al crear el nuevo servicio")
-        return dict(nuevo_servicio)
-    except AppException as ae:
-        raise ae
-    except Exception as e:
-        raise OperationError(f"Error interno: {str(e)}")
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM servicios;") # Where estado =...
+    servicios = fetchall_to_dict(cursor)
 
-async def actualizar_servicio(servicio_id: UUID, servicio: ServicioUpdate, db) -> dict:
-    try:
-        servicio_anterior = await db.fetchrow("SELECT * FROM servicios WHERE id = $1;", servicio_id)
-        if not servicio_anterior:
-            raise NotFoundError(f"No se encontró al servicio con id {servicio_id}")
+    if not servicios:
+        raise NotFoundError("No se encontraron servicios")
+    
+    return servicios
 
-        # Completar campos faltantes con valores anteriores
-        if not servicio.nombre:
-            servicio.nombre = servicio_anterior["nombre"]
-        if not servicio.duracion_minutos:
-            servicio.duracion_minutos = servicio_anterior["duracion_minutos"]
-        if not servicio.precio:
-            servicio.precio = servicio_anterior["precio"]
+@try_except_closeCursor
+def crear_servicio(servicio: ServicioBase, db) -> dict:
 
-        servicio_actualizado = await db.fetchrow(
-            """
-            UPDATE servicios
-            SET nombre = $1, duracion_minutos = $2, precio = $3
-            WHERE id = $4
-            RETURNING *;
-            """, servicio.nombre, servicio.duracion_minutos, servicio.precio, servicio_id
-        )
-        if not servicio_actualizado:
-            raise OperationError(f"Error al actualizar el servicio con id {servicio_id}")
-        return dict(servicio_actualizado)
-    except AppException as ae:
-        raise ae
-    except Exception as e:
-        raise OperationError(f"Error interno: {str(e)}")
+    cursor = db.cursor()
+    cursor.execute(
+        """
+        INSERT INTO servicios (nombre, duracion_minutos, precio)
+        VALUES (%s, %s, %s)
+        RETURNING *;
+        """, (servicio.nombre, servicio.duracion_minutos, servicio.precio)
+    )
+    nuevo_servicio = fetchone_to_dict(cursor)
+    db.commit()
 
-async def eliminar_servicio(servicio_id: UUID, db) -> dict:
-    try:
-        resultado = await db.execute("DELETE FROM servicios WHERE id = $1;", servicio_id)
-        if resultado == "DELETE 0":
-            raise NotFoundError("Servicio no encontrado")
-        return {"mensaje": "Servicio eliminado correctamente"}
-    except AppException as ae:
-        raise ae
-    except Exception as e:
-        raise OperationError(f"Error interno: {str(e)}")
+    if not nuevo_servicio:
+        raise OperationError("Error al crear el nuevo servicio")
+    
+    return nuevo_servicio
 
-async def obtener_servicio_by_id(servicio_id: UUID, db) -> dict:
-    try:
-        servicio = await db.fetchrow("SELECT * FROM servicios WHERE id = $1;", servicio_id)
-        if not servicio:
-            raise NotFoundError(f"No se encontró al servicio con id {servicio_id}")
-        return dict(servicio)
-    except AppException as ae:
-        raise ae
-    except Exception as e:
-        raise OperationError(f"Error interno: {str(e)}")
+
+@try_except_closeCursor
+def actualizar_servicio(servicio_id: UUID, servicio: ServicioUpdate, db) -> dict:
+        
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM servicios WHERE id = %s;", (str(servicio_id),))
+    servicio_anterior = fetchone_to_dict(cursor)
+    if not servicio_anterior:
+        raise NotFoundError(f"No se encontró al servicio con id {servicio_id}")
+
+    # Completar campos faltantes con valores anteriores
+    if not servicio.nombre:
+        servicio.nombre = servicio_anterior["nombre"]
+    if not servicio.duracion_minutos:
+        servicio.duracion_minutos = servicio_anterior["duracion_minutos"]
+    if not servicio.precio:
+        servicio.precio = servicio_anterior["precio"]
+
+    cursor.execute(
+        """
+        UPDATE servicios
+        SET nombre = %s, duracion_minutos = %s, precio = %s
+        WHERE id = %s
+        RETURNING *;
+        """, (servicio.nombre, servicio.duracion_minutos, servicio.precio, str(servicio_id))
+    )
+    servicio_actualizado = fetchone_to_dict(cursor)
+
+    if not servicio_actualizado:
+        raise OperationError(f"Error al actualizar el servicio con id {servicio_id}")
+    
+    db.commit()
+    return servicio_actualizado
+
+
+@try_except_closeCursor
+def eliminar_servicio(servicio_id: UUID, db) -> dict:
+    
+    cursor = db.cursor()
+    cursor.execute("DELETE FROM servicios WHERE id = %s;", (str(servicio_id),))
+    filas_afectadas = cursor.rowcount
+
+    if filas_afectadas == 0:
+        raise NotFoundError("Servicio no encontrado")
+    
+    db.commit()
+
+    return {"mensaje": "Servicio eliminado correctamente"}
+
+
+@try_except_closeCursor
+def obtener_servicio_by_id(servicio_id: UUID, db) -> dict:
+
+    cursor = db.cursor()
+    cursor.execute("SELECT * FROM servicios WHERE id = %s;", (str(servicio_id),))
+    servicio = fetchone_to_dict(cursor)
+
+    if not servicio:
+        raise NotFoundError(f"No se encontró al servicio con id {servicio_id}")
+    
+    return servicio

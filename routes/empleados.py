@@ -13,21 +13,21 @@ from services.empleados import (
 router = APIRouter(prefix="/empleados", tags=["Empleados"])
 
 @router.get("/", response_model=list[EmpleadoResponse])
-async def obtener_empleados_endpoint(db=Depends(get_db)):
-    return await obtener_empleados(db)   
+def obtener_empleados_endpoint(db=Depends(get_db)):
+    return obtener_empleados(db)   
 
 @router.post("/", response_model=EmpleadoResponse)
-async def crear_empleado_endpoint(empleado: EmpleadoBase, db=Depends(get_db)):
-    return await crear_empleado(empleado, db)
+def crear_empleado_endpoint(empleado: EmpleadoBase, db=Depends(get_db)):
+    return crear_empleado(empleado, db)
 
 @router.put("/{empleado_id}", response_model=EmpleadoResponse)
-async def actualizar_empleado_endpoint(empleado_id: UUID, empleado: EmpleadoUpdate, db=Depends(get_db)):
-    return await actualizar_empleado(empleado_id, empleado, db)
+def actualizar_empleado_endpoint(empleado_id: UUID, empleado: EmpleadoUpdate, db=Depends(get_db)):
+    return actualizar_empleado(empleado_id, empleado, db)
 
 @router.delete("/{empleado_id}")
-async def eliminar_empleado_endpoint(empleado_id: UUID, db=Depends(get_db)):
-    return await eliminar_empleado(empleado_id, db)
+def eliminar_empleado_endpoint(empleado_id: UUID, db=Depends(get_db)):
+    return eliminar_empleado(empleado_id, db)
 
 @router.get("/{empleado_id}", response_model=EmpleadoResponse)
-async def obtener_empleado_by_id_endpoint(empleado_id: UUID, db=Depends(get_db)):
-    return await obtener_empleado_by_id(empleado_id, db)
+def obtener_empleado_by_id_endpoint(empleado_id: UUID, db=Depends(get_db)):
+    return obtener_empleado_by_id(empleado_id, db)

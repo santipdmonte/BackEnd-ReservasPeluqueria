@@ -35,3 +35,54 @@ async def custom_exception_handler(request: Request, exc: Exception):
     elif isinstance(exc, AppException):
         return JSONResponse(status_code=500, content={"detail": exc.message})
     return JSONResponse(status_code=500, content={"detail": "Error interno del servidor"})
+
+
+# Decorator para manejar transacciones
+from functools import wraps
+
+def transactional(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        db = kwargs.get("db")  # Obtenemos la conexión de los argumentos
+        if not db:
+            raise ValueError("Se requiere una conexión a la base de datos")
+        
+        cursor = None  # Variable para rastrear el cursor
+
+        try:
+            # Ejecutamos la función que contiene la lógica SQL
+            result = func(*args, **kwargs)
+            
+            db.commit()  # Confirmamos la transacción
+            return result
+        except Exception as e:
+            db.rollback()  # Revertimos los cambios si hay error
+            raise OperationError(f"Error en la transacción: {str(e)}")
+        finally:
+            if cursor and not cursor.closed:  
+                cursor.close()  # Cerramos el cursor si aún está abierto
+
+    return wrapper
+
+def try_except_closeCursor(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+
+        
+        cursor = None  # Variable para rastrear el cursor
+
+        try:
+            # Ejecutamos la función que contiene la lógica SQL
+            result = func(*args, **kwargs)
+            
+            return result
+
+        except AppException as ae:
+            raise ae
+        except Exception as e:
+            raise OperationError(f"Error interno: {str(e)}")
+        finally:
+            if cursor and not cursor.closed:
+                cursor.close()
+
+    return wrapper

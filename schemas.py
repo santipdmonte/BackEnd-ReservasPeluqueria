@@ -20,7 +20,6 @@ class UsuarioResponse(UsuarioBase):
 class UsuarioUpdate(BaseModel):
     nombre: Optional[str] = None
     email: Optional[EmailStr] = None
-    id: UUID
 
 
 # ==== Empleado ====
